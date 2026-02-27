@@ -96,7 +96,6 @@ def get_video_info(url):
 
 def download_video(url, download_id):
     """Download video in background thread"""
-    output_path = os.path.join(DOWNLOAD_FOLDER, download_id)
     
     def progress_hook(d):
         if d['status'] == 'downloading':
@@ -116,7 +115,7 @@ def download_video(url, download_id):
         # Prioritize VP9 codec (highest quality on YouTube) with highest bitrate
         # VP9 at 1440p/1080p > AVC1 at 1440p/1080p > Best available
         'format': '(bestvideo[vcodec^=vp9][height>=1440]/bestvideo[vcodec^=vp09][height>=1440]/bestvideo[height>=1440]/bestvideo[vcodec^=vp9][height>=1080]/bestvideo[vcodec^=vp09][height>=1080]/bestvideo[height>=1080]/bestvideo)+(bestaudio[acodec=opus]/bestaudio[acodec^=mp4a]/bestaudio)/best',
-        'outtmpl': f'{output_path}/%(title)s.%(ext)s',
+        'outtmpl': f'{DOWNLOAD_FOLDER}/%(title)s.%(ext)s',
         'merge_output_format': 'mkv',  # MKV supports VP9 better than MP4
         'quiet': True,
         'no_warnings': True,
@@ -131,7 +130,10 @@ def download_video(url, download_id):
             '-strict', 'experimental',
         ],
         'prefer_ffmpeg': True,
-        'keepvideo': False,
+        'keepvideo': False,  # Delete intermediate files
+        'writethumbnail': False,  # Don't save thumbnail
+        'writesubtitles': False,  # Don't save subtitles
+        'writeautomaticsub': False,  # Don't save auto-generated subtitles
         # Download highest bitrate available
         'format_sort': [
             'quality',
@@ -148,6 +150,9 @@ def download_video(url, download_id):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
+            # Change extension to mkv since that's our merge format
+            if not filename.endswith('.mkv'):
+                filename = os.path.splitext(filename)[0] + '.mkv'
             
             download_status[download_id] = {
                 'status': 'completed',

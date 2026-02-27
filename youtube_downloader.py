@@ -35,7 +35,10 @@ def download_video(url, output_path='downloads'):
             '-strict', 'experimental',
         ],
         'prefer_ffmpeg': True,
-        'keepvideo': False,
+        'keepvideo': False,  # Delete intermediate files
+        'writethumbnail': False,  # Don't save thumbnail
+        'writesubtitles': False,  # Don't save subtitles
+        'writeautomaticsub': False,  # Don't save auto-generated subtitles
         # Download highest bitrate available
         'format_sort': [
             'quality',
