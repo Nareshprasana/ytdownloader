@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Downloader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .video-info {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .video-info.show {
+            display: block;
+        }
+
+        .video-info img {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .video-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .video-info p {
+            color: #666;
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .progress-info {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .alert-success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📹 YouTube Downloader</h1>
+        <p class="subtitle">Download videos in maximum quality (VP9 2K/1080p)</p>
+
+        <div class="input-group">
+            <input type="text" id="videoUrl" placeholder="Paste YouTube video URL here..." />
+        </div>
+
+        <button class="btn btn-primary" id="getInfoBtn" onclick="getVideoInfo()">
+            Get Video Info
+        </button>
+
+        <div id="alert" class="alert"></div>
+
+        <div id="videoInfo" class="video-info"></div>
+
+        <button class="btn btn-success" id="downloadBtn" onclick="startDownload()" style="display: none;">
+            Download Video (Maximum Quality)
+        </button>
+
+        <div id="progressContainer" class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            <div class="progress-info" id="progressInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentDownloadId = null;
+
+        function showAlert(message, type = 'error') {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+
+        async function getVideoInfo() {
+            const url = document.getElementById('videoUrl').value.trim();
+            if (!url) {
+                showAlert('Please enter a YouTube URL');
+                return;
+            }
+
+            const btn = document.getElementById('getInfoBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Loading...<span class="loader"></span>';
+
+            try {
+                const response = await fetch('/api/info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayVideoInfo(data);
+                    document.getElementById('downloadBtn').style.display = 'block';
+                } else {
+                    showAlert(data.error || 'Failed to get video info');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Get Video Info';
+            }
+        }
+
+        function displayVideoInfo(info) {
+            const duration = Math.floor(info.duration / 60);
+            const views = info.view_count.toLocaleString();
+            
+            let qualityText = '';
+            let qualityColor = '';
+            let qualityBadge = '';
+            
+            if (info.has_2k_vp9) {
+                qualityText = `✅ 2K VP9 (Highest Quality) - ${info.best_fps}fps`;
+                qualityColor = '#10b981';
+                qualityBadge = '🏆 PREMIUM QUALITY';
+            } else if (info.has_2k) {
+                qualityText = `✅ 2K (1440p) Available - ${info.best_fps}fps`;
+                qualityColor = '#10b981';
+                qualityBadge = '⭐ HIGH QUALITY';
+            } else if (info.has_1080p_vp9) {
+                qualityText = `⚠️ 1080p VP9 Available - ${info.best_fps}fps`;
+                qualityColor = '#f59e0b';
+                qualityBadge = '✨ GOOD QUALITY';
+            } else if (info.has_1080p) {
+                qualityText = `⚠️ 1080p Available - ${info.best_fps}fps`;
+                qualityColor = '#f59e0b';
+                qualityBadge = '� STANDARD QUALITY';
+            } else {
+                qualityText = `⚠️ Best: ${info.best_height}p - ${info.best_fps}fps`;
+                qualityColor = '#ef4444';
+                qualityBadge = '📺 BASIC QUALITY';
+            }
+            
+            const html = `
+                <img src="${info.thumbnail}" alt="Thumbnail">
+                <h3>${info.title}</h3>
+                <p>👤 Channel: ${info.uploader}</p>
+                <p>⏱️ Duration: ${duration} minutes</p>
+                <p>👁️ Views: ${views}</p>
+                <p style="color: ${qualityColor}; font-weight: bold; font-size: 1.1em;">${qualityText}</p>
+                <p style="background: ${qualityColor}; color: white; padding: 5px 10px; border-radius: 5px; display: inline-block; font-size: 0.85em; font-weight: bold;">${qualityBadge}</p>
+                <p style="font-size: 0.85em; color: #666; margin-top: 10px;">
+                    📊 Video: ${info.best_vcodec} | Audio: ${info.best_acodec}<br>
+                    💾 Bitrate: ${info.best_bitrate} Mbps | 🎬 Lossless stream copy
+                </p>
+            `;
+            
+            const videoInfo = document.getElementById('videoInfo');
+            videoInfo.innerHTML = html;
+            videoInfo.classList.add('show');
+        }
+
+        async function startDownload() {
+            const url = document.getElementById('videoUrl').value.trim();
+            
+            const btn = document.getElementById('downloadBtn');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentDownloadId = data.download_id;
+                    document.getElementById('progressContainer').classList.add('show');
+                    checkDownloadStatus();
+                } else {
+                    showAlert(data.error || 'Failed to start download');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message);
+                btn.disabled = false;
+            }
+        }
+
+        async function checkDownloadStatus() {
+            if (!currentDownloadId) return;
+
+            try {
+                const response = await fetch(`/api/status/${currentDownloadId}`);
+                const status = await response.json();
+
+                const progressFill = document.getElementById('progressFill');
+                const progressInfo = document.getElementById('progressInfo');
+
+                if (status.status === 'downloading') {
+                    progressFill.style.width = status.percent;
+                    progressFill.textContent = status.percent;
+                    progressInfo.textContent = `Speed: ${status.speed} | ETA: ${status.eta}`;
+                    setTimeout(checkDownloadStatus, 500);
+                } else if (status.status === 'processing') {
+                    progressFill.style.width = '100%';
+                    progressFill.textContent = '100%';
+                    progressInfo.textContent = 'Processing video...';
+                    setTimeout(checkDownloadStatus, 500);
+                } else if (status.status === 'completed') {
+                    progressFill.style.width = '100%';
+                    progressFill.textContent = 'Complete!';
+                    progressInfo.textContent = 'Download completed!';
+                    
+                    // Trigger file download
+                    window.location.href = `/api/download/${currentDownloadId}`;
+                    
+                    showAlert('Video downloaded successfully!', 'success');
+                    document.getElementById('downloadBtn').disabled = false;
+                } else if (status.status === 'error') {
+                    showAlert('Download error: ' + status.error);
+                    document.getElementById('downloadBtn').disabled = false;
+                } else {
+                    setTimeout(checkDownloadStatus, 500);
+                }
+            } catch (error) {
+                showAlert('Status check error: ' + error.message);
+            }
+        }
+
+        // Allow Enter key to trigger info fetch
+        document.getElementById('videoUrl').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') getVideoInfo();
+        });
+    </script>
+</body>
+</html>
